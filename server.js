@@ -2,6 +2,7 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,9 +10,13 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));  // serves your index.html from the 'public' folder
 
-// Email transporter using your Gmail credentials
+// Serve index.html from the root folder
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Email transporter (तुमची खाती)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -20,13 +25,13 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Order endpoint
+// 📦 ऑर्डर एंडपॉईंट
 app.post('/api/order', async (req, res) => {
   const order = req.body;
 
   const adminMailOptions = {
     from: 'myshoppyyacc@gmail.com',
-    to: 'myshoppyyacc@gmail.com',  // you can change this to your own email
+    to: 'myshoppyyacc@gmail.com',
     subject: `🛒 New Order Received - ${order.order_id}`,
     html: `
       <h2>New Order Details</h2>
@@ -44,27 +49,11 @@ app.post('/api/order', async (req, res) => {
     `
   };
 
-  // Optional: send confirmation to customer
-  const customerMailOptions = {
-    from: 'myshoppyyacc@gmail.com',
-    to: order.customer_email,
-    subject: `Order Confirmation - ${order.order_id}`,
-    html: `
-      <h2>Thank you for your order, ${order.customer_name}!</h2>
-      <p>Your order #${order.order_id} has been received.</p>
-      <p>We'll notify you when it ships.</p>
-      <p>Order details:</p>
-      <ul>
-        ${order.items.map(item => `<li>${item.name} x ${item.quantity} = ₹${item.price * item.quantity}</li>`).join('')}
-      </ul>
-      <p><strong>Total:</strong> ₹${order.total}</p>
-      <p>Payment method: Cash on Delivery</p>
-    `
-  };
+  // ग्राहकाला पुष्टीकरण ईमेल (पर्यायी)
+  // const customerMailOptions = { ... };
 
   try {
     await transporter.sendMail(adminMailOptions);
-    // Uncomment the next line if you want to send a confirmation to the customer
     // await transporter.sendMail(customerMailOptions);
     res.status(200).json({ success: true, message: 'Order placed and notification sent.' });
   } catch (error) {
@@ -73,7 +62,7 @@ app.post('/api/order', async (req, res) => {
   }
 });
 
-// Contact endpoint
+// 📬 कॉन्टॅक्ट एंडपॉईंट
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
 
